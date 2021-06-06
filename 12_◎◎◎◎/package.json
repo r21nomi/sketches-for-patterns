@@ -1,0 +1,23 @@
+{
+  "name": "sketches-for-patterns",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "webpack --watch",
+    "dev": "webpack-dev-server --open",
+    "build": "webpack"
+  },
+  "author": "",
+  "dependencies": {
+    "@tweenjs/tween.js": "^17.2.0",
+    "glslify": "^6.3.0",
+    "three": "^0.129.0"
+  },
+  "devDependencies": {
+    "webpack": "^4.17.1",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5",
+    "webpack-glsl-loader": "^1.0.1"
+  }
+}
