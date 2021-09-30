@@ -7,9 +7,19 @@ let timeoutSpan = 100;
 let isDebugMode = false;
 
 let cubes = [];
+let id = 0;
 const timeCount = 120;
 
 setup=()=>{
+    const queries = location.search.replace("?", "")
+      .split("&")
+      .map(v => v.split("="))
+      .reduce((pre, [key, value]) => ({ ...pre, [key]: value }), {});
+
+    if (queries['id']) {
+        id = parseInt(queries['id']);
+    }
+
     createCanvas(windowWidth, windowHeight);
 
     const count = 8;
@@ -59,15 +69,33 @@ const shuffle = ([...array]) => {
     return array;
 };
 
+const colorList = [
+  "ee3300-ffbb00-442233",
+  "00120b-35605a-6b818c-d8e4ff-31e981",
+  "340068-ff6978-fffcf9-b1ede8-6d435a",
+  "e5ffde-bbcbcb-9590a8-634b66-18020c",
+  "ffffff-ffcad4-b0d0d3-c08497-f7af9d",
+  "156064-00c49a-f8e16c-ffc2b4-fb8f67",
+  "9f84bd-c09bd8-ebc3db-ede3e9-e6e4ce",
+  "3a405a-aec5eb-f9dec9-e9afa3-685044",
+  "020202-0d324d-7f5a83-a188a6-9da2ab",
+  "293132-474044-4f5165-547aa5-50d8d7",
+  "392f5a-f092dd-ffaff0-eec8e0-a8c7bb",
+  "ac80a0-89aae6-3685b5-0471a6-061826",
+  "272d2d-a39ba8-b8c5d6-edf5fc-23ce6b",
+  "9b5de5-f15bb5-fee440-00bbf9-00f5d4",
+  "75dddd-508991-172a3a-004346-09bc8a",
+  "464d77-36827f-f9db6d-f4eded-877666",
+  "2274a5-e7eb90-fadf63-e6af2e-632b30"
+];
+
 class Cube {
     constructor(_pos, _size, _isMovable) {
+        const cs = colorList[id % colorList.length].split("-").map(c => `#${c}`);
+        const c = color(cs[Math.floor(random(cs.length))]);
         this.pos = _pos;
         this.size = _size;
-        this.colors = shuffle([
-            color(random(180, 250), random(20, 40), 0),
-            color(random(160, 240), random(100, 220), 0),
-            color(random(30, 60), 0, 0),
-        ]);
+        this.colors = [c, c, c];
         this.isMovable = _isMovable;
         this.speedOffset = random(0, 100);
         this.moveOffset = 40;
