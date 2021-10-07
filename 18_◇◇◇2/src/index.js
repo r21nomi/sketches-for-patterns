@@ -9,6 +9,9 @@ let isDebugMode = false;
 let cubes = [];
 let id = 0;
 const timeCount = 120;
+let normalizedFrame = [0];
+const NUM_FRAMES = 60;
+const SPEED_OFFSET = 1.0;
 
 setup=()=>{
     const queries = location.search.replace("?", "")
@@ -50,6 +53,7 @@ draw=()=>{
     if (!isImageGenerationMode) {
         currentTime[0] = frameCount;
     }
+    normalizedFrame[0] = SPEED_OFFSET * (currentTime[0] - 1) % NUM_FRAMES / NUM_FRAMES;
     background(`#ff1100`);
 
     for (let item of cubes) {
@@ -108,7 +112,7 @@ class Cube {
 
         let offset = 0;
         if (this.isMovable) {
-            offset = (sin(getTime(this.speedOffset) * 360 * PI / 180) * 0.5 - 0.5) * this.moveOffset;
+            offset = (sin(getRadiansFromFrame() + this.speedOffset) * 0.5 - 0.5) * this.moveOffset;
         }
 
         push();
@@ -138,8 +142,9 @@ class Cube {
         pop();
     }
 }
-const getTime = (seed) => {
-    return ((currentTime[0]) + seed) % timeCount / timeCount;
+
+const getRadiansFromFrame = () => {
+    return TWO_PI * normalizedFrame[0];
 };
 
 const createImage = (canvas, fileName, index) => {
@@ -162,7 +167,7 @@ const generateImage = () => {
     draw();
     createImage(canvas, "img_1", imageIndex);
 
-    if (currentTime[0] !== 0 && currentTime[0] >= timeCount) {
+    if (currentTime[0] === NUM_FRAMES / SPEED_OFFSET) {
         console.log("fin");
         return;
     }
