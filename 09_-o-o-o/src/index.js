@@ -1,7 +1,7 @@
 let currentTime = [0];
 let imageIndex = 0;
 let isImageGenerationMode = false;
-let showGenerateImageButton = true;
+let showGenerateImageButton = false;
 const span = 1;
 let timeoutSpan = 100;
 
@@ -27,14 +27,16 @@ draw=()=>{
 };
 
 windowResized=()=>{
-    // init();
-    // resizeCanvas(windowWidth, windowHeight);
+    init();
+    resizeCanvas(windowWidth, windowHeight);
 }
 
 const init = () => {
+    rectMode(CENTER);
+
     ls = [];
-    const count = max(3, min(width, height) / 100);
     const area = min(width, height) * 0.75;
+    const count = floor(max(3, area / 80));
     const mw = width - area;
     const mh = height - area;
     let size = area / count;
@@ -43,12 +45,12 @@ const init = () => {
             const x = mw / 2 + size * ix  + size / 2;
             const y = mh / 2 + size * iy  + size / 2;
             ls.push(new L(
-                createVector(x, y),
-                createVector(size, size),
-                random(1, 500),
-                parseInt(random(2, 5)),
-                color(random(220, 255), random(210, 255), 0),
-                color(0, 30, 120)
+              createVector(x, y),
+              createVector(size, size),
+              random(1, 500),
+              parseInt(random(2, 5)),
+              color(random(220, 255), random(210, 255), 0),
+              color(0, 30, 120)
             ));
         }
     }
@@ -71,9 +73,9 @@ class L {
         this.strokeColor = strokeColor;
         for (let i = 0; i < pointNum; i++) {
             this.ps.push(new P(
-                createVector(0, 0),
-                createVector(size.x - this.padding * 2, size.y - this.padding *2),
-                250 * i + randomOffset)
+              createVector(this.padding, this.padding),
+              createVector(size.x - this.padding * 2, size.y - this.padding *2),
+              250 * i + randomOffset)
             );
         }
     }
@@ -107,7 +109,8 @@ class L {
 
 class P {
     constructor(pos, size, delay) {
-        this.pos = pos;
+        this.initialPos = createVector(pos.x, pos.y);
+        this.pos = createVector(0, 0);
         this.size = size;
         this.delayOffset = 0;
         this.delay = delay;
@@ -117,8 +120,8 @@ class P {
         const fluidity = 0.5;
         let time = getTimeForP();
         let d = this.delay + this.delayOffset;
-        this.pos.x = this.size.x * smoothstep(-fluidity, fluidity, cos(time + d));
-        this.pos.y = this.size.y * smoothstep(-fluidity, fluidity, sin(time + d));
+        this.pos.x = this.initialPos.x + this.size.x * smoothstep(-fluidity, fluidity, cos(time + d));
+        this.pos.y = this.initialPos.y + this.size.y * smoothstep(-fluidity, fluidity, sin(time + d));
     }
 }
 
