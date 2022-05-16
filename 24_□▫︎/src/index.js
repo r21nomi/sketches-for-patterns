@@ -168,7 +168,8 @@ const renderTiles = () => {
         transparent: true,
         blending: THREE.NormalBlending,
         depthTest: true,
-        wireframe: false
+        wireframe: false,
+        glslVersion: THREE.GLSL1
     });
 
     const mesh = new THREE.Mesh(geometry, material);
@@ -207,7 +208,7 @@ class Tile {
         this.h = h;
         this.age = age;
         this.children = [];
-        this.ratio = 0.5;
+        this.ratio = Math.random();
         this.shouldRender = false;
         this.id = -1;
 

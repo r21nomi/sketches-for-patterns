@@ -11,6 +11,12 @@ varying vec2 vUv;
 varying vec3 vColor;
 varying vec2 vResolution;
 
+vec3 col1 = vec3(176.0, 46.0, 12.0) / 255.0;
+vec3 col2 = vec3(235.0, 69.0, 17.0) / 255.0;
+vec3 col3 = vec3(242.0, 244.0, 243.0) / 255.0;
+vec3 col4 = vec3(48.0, 52.0, 63.0) / 255.0;
+vec3 col5 = vec3(27.0, 32.0, 33.0) / 255.0;
+
 mat2 rotate(float angle) {
     return mat2(
         sin(angle), -cos(angle),
@@ -28,61 +34,32 @@ void main() {
 
     float id = floor(mod(vIndex, 4.8));
 
-    vec3 col1 = vec3(0.0);
-    vec3 col2 = vec3(0.0);
     vec3 color = vec3(0.0);
-    col1 = vec3(0.9, 0.9, 0.8);
-    col2 = vec3(0.1, 0.85, 0.2);
+
+    float speed = 0.2 + id * 0.1;
+    uv = abs(uv) - time * speed;
+    float freq = 5.0 + id;
+    float m = max(uv.x, uv.y) * freq;
+    float freq2 = clamp(id * 1.2, 0.5, 2.0);
+    float _borderWidth = 0.3;
+    float border = step(_borderWidth, mod(m, freq2));
 
     if (id == 0.0) {
         // rect 1
-        uv = abs(uv);
-        float freq = 5.0;
-        float m = max(uv.x, uv.y) * freq;
-        float borderWidth = 0.3;
-        float border = step(borderWidth, mod(m, 1.0));
         color = mix(col1, col2, border);
     } else if (id == 1.0) {
-        // rect 1
-        uv = abs(uv);
-        float freq = 5.0;
-        float m = max(uv.x, uv.y) * freq;
-        float borderWidth = 0.3;
-        float border = step(borderWidth, mod(m, 1.0));
-        color = mix(col1, col2, border);
+        // rect 2
+        color = mix(col3, col4, border);
     } else if (id == 2.0) {
-        // rect 1
-        uv = abs(uv);
-        float freq = 5.0;
-        float m = max(uv.x, uv.y) * freq;
-        float borderWidth = 0.3;
-        float border = step(borderWidth, mod(m, 1.0));
-        color = mix(col1, col2, border);
+        // rect 3
+        color = mix(col2, col5, border);
     } else if (id == 3.0) {
-        // rect 1
-        uv = abs(uv);
-        float freq = 5.0;
-        float m = max(uv.x, uv.y) * freq;
-        float borderWidth = 0.3;
-        float border = step(borderWidth, mod(m, 1.0));
-        color = mix(col1, col2, border);
+        // rect 4
+        color = mix(col3, col1, border);
     } else {
-        // rect 1
-        uv = abs(uv);
-        float freq = 5.0;
-        float m = max(uv.x, uv.y) * freq;
-        float borderWidth = 0.3;
-        float border = step(borderWidth, mod(m, 1.0));
-        color = mix(col1, col2, border);
+        // rect 5
+        color = mix(col5, col2, border);
     }
 
-    float borderWidth = 0.0;
-    float l = step(vResolution.x * vUv.x, borderWidth)
-            + step(vResolution.x - borderWidth, vResolution.x * vUv.x)
-            + step(vResolution.y *vUv.y, borderWidth)
-            + step(vResolution.y - borderWidth, vResolution.y * vUv.y);
-
-    float transparency = mix(1.0, 0.0, l);
-
-    gl_FragColor = vec4(color, transparency);
+    gl_FragColor = vec4((color), 1.0);
 }
