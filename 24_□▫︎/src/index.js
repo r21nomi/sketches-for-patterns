@@ -10,6 +10,20 @@ scene.background = new THREE.Color(0.0,0.0,0.9);
 
 const duration = 1.0;
 
+const MAX_AGE = 6;
+const geometry = new THREE.BufferGeometry();
+const index = [];
+const vertices = [];
+const uvs = [];
+const offsets = [];
+const indices = [];
+const paddings = [];
+const colors = [];
+const size = [];
+const directions = [];
+
+let totalRenderCount = 0;
+
 const uniforms = {
     rect: {
         time: { type: "f", value: 1.0 },
@@ -46,7 +60,6 @@ const map = (value, beforeMin, beforeMax, afterMin, afterMax) => {
 const backgroundGroup = new THREE.Group();
 const objectGroup = new THREE.Group();
 
-
 // Camera
 const fov = 45;
 const aspect = window.innerWidth / window.innerHeight;
@@ -74,8 +87,6 @@ const render = () => {
 
     requestAnimationFrame(render);
 };
-
-// window.addEventListener("resize", onResize);
 
 const onResize = () => {
     const width = window.innerWidth;
@@ -138,19 +149,6 @@ if (showGenerateImageButton) {
     generateImageButton.remove();
 }
 
-const MAX_AGE = 4;
-const geometry = new THREE.BufferGeometry();
-const index = [];
-const vertices = [];
-const uvs = [];
-const offsets = [];
-const indices = [];
-const paddings = [];
-const colors = [];
-const size = [];
-
-let totalRenderCount = 0;
-
 const renderTiles = () => {
     geometry.setIndex(indices);
     geometry.setAttribute('index', new THREE.Uint16BufferAttribute(index, 1));
@@ -160,6 +158,7 @@ const renderTiles = () => {
     geometry.setAttribute('offset', new THREE.Float32BufferAttribute(offsets, 2));
     geometry.setAttribute('padding', new THREE.Float32BufferAttribute(paddings, 2));
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geometry.setAttribute('direction', new THREE.Float32BufferAttribute(directions, 1));
 
     const material = new THREE.RawShaderMaterial({
         uniforms: uniforms.rect,
@@ -271,6 +270,11 @@ class Tile {
                 size.push(this.w, this.h);
                 paddings.push(padding, padding);
                 colors.push(color.x, color.y, color.z);
+                if (this.w > this.h) {
+                    directions.push(1.0);
+                } else {
+                    directions.push(0.0);
+                }
             }
 
             uvs.push(
@@ -312,6 +316,8 @@ class Tile {
 createTiles();
 scene.add(backgroundGroup);
 scene.add(objectGroup);
+
+window.addEventListener("resize", onResize);
 
 onResize();
 render();

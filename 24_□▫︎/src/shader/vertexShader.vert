@@ -10,6 +10,7 @@ attribute vec2 size;
 attribute vec2 offset;
 attribute vec2 padding;
 attribute vec3 color;
+attribute float direction;
 
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
@@ -24,6 +25,7 @@ varying float vIndexRatio;
 varying vec2 vUv;
 varying vec3 vColor;
 varying vec2 vResolution;
+varying float vDirection;
 
 mat2 rotate(float radien) {
     return mat2(
@@ -46,6 +48,7 @@ void main() {
     vColor = color;
     // Actual resolution of rect by vertex with padding.
     vResolution = vec2(size.x * padding.x, size.y * padding.y);
+    vDirection = direction;
 
     float t = time / duration;
 

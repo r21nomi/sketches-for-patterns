@@ -1,5 +1,5 @@
 # 24_□▫︎
-![](art/art.jpg)
+![](art/art.png)
 
 ### How to generate video
 ```
