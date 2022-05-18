@@ -6,7 +6,7 @@ const bgFragmentShader = require('webpack-glsl-loader!./shader/bgFragmentShader.
 
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0.0,0.0,0.9);
+scene.background = new THREE.Color(0.0,0.0,0.4);
 
 const duration = 1.0;
 
@@ -270,7 +270,9 @@ class Tile {
                 size.push(this.w, this.h);
                 paddings.push(padding, padding);
                 colors.push(color.x, color.y, color.z);
-                if (this.w > this.h) {
+                if (Math.abs(this.w - this.h) < 100.0) {
+                    directions.push(-1.0);
+                } else if (this.w > this.h) {
                     directions.push(1.0);
                 } else {
                     directions.push(0.0);
