@@ -12,6 +12,8 @@ const duration = 1.0;
 
 const MAX_AGE = 6;
 const geometry = new THREE.BufferGeometry();
+let material;
+
 const index = [];
 const vertices = [];
 const uvs = [];
@@ -21,6 +23,7 @@ const paddings = [];
 const colors = [];
 const size = [];
 const directions = [];
+let baseTile;
 
 let totalRenderCount = 0;
 
@@ -81,6 +84,10 @@ const render = () => {
 
     uniforms.rect.time.value = currentTime[0];
     uniforms.bg.time.value = currentTime[0];
+
+    if (baseTile) {
+        baseTile.update();
+    }
 
     camera.lookAt(new THREE.Vector3(0, 0, 0));
     renderer.render(scene, camera);
@@ -160,7 +167,7 @@ const renderTiles = () => {
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geometry.setAttribute('direction', new THREE.Float32BufferAttribute(directions, 1));
 
-    const material = new THREE.RawShaderMaterial({
+    material = new THREE.RawShaderMaterial({
         uniforms: uniforms.rect,
         vertexShader: vertexShader,
         fragmentShader: fragmentShader,
@@ -191,11 +198,13 @@ const renderTiles = () => {
     );
     // mesh4.position.z = 0.4;
     backgroundGroup.add(mesh4);
+
+    scene.add(backgroundGroup);
+    scene.add(objectGroup);
 };
 
 const createTiles = () => {
-    new Tile(-window.innerWidth / 2, -window.innerHeight / 2, window.innerWidth, window.innerHeight, 0);
-    console.log(totalRenderCount);
+    baseTile = new Tile(-window.innerWidth / 2, -window.innerHeight / 2, window.innerWidth, window.innerHeight, 0);
     renderTiles();
 };
 
@@ -207,7 +216,9 @@ class Tile {
         this.h = h;
         this.age = age;
         this.children = [];
+        this.offset = Math.floor(Math.random() * 50 + 1);
         this.ratio = Math.random();
+        this.targetRatio = this.ratio;
         this.shouldRender = false;
         this.id = -1;
 
@@ -253,8 +264,104 @@ class Tile {
             }
         } else {
             // for render
-            this.shouldRender = true;
+            this.draw(false);
+        }
+    }
+    update(arg = null) {
+        if (!!arg) {
+            this.x = arg.x;
+            this.y = arg.y;
+            this.w = arg.w;
+            this.h = arg.h;
+        }
+        if (this.children.length > 0) {
+            if (Math.abs(this.ratio - this.targetRatio) < 0.001) {
+                this.targetRatio = Math.random();
+            }
+            this.ratio += (this.targetRatio - this.ratio) * 0.04;
+            if (this.age % 2 === 0) {
+                // horizontal
+                // ||
+                const x1 = this.x;
+                const y1 = this.y;
+                const w1 = this.w * this.ratio;
+                const h1 = this.h;
+                this.children[0].update({
+                    x: x1,
+                    y: y1,
+                    w: w1,
+                    h: h1
+                });
+
+                const x2 = x1 + w1;
+                const y2 = y1;
+                const w2 = this.w * (1 - this.ratio);
+                const h2 = this.h;
+                this.children[1].update({
+                    x: x2,
+                    y: y2,
+                    w: w2,
+                    h: h2
+                });
+            } else {
+                // vertical
+                // ＝
+                const x1 = this.x;
+                const y1 = this.y;
+                const w1 = this.w;
+                const h1 = this.h * this.ratio;
+                this.children[0].update({
+                    x: x1,
+                    y: y1,
+                    w: w1,
+                    h: h1
+                });
+
+                const x2 = this.x;
+                const y2 = this.y + h1;
+                const w2 = this.w;
+                const h2 = this.h * (1 - this.ratio);
+                this.children[1].update({
+                    x: x2,
+                    y: y2,
+                    w: w2,
+                    h: h2
+                });
+            }
+        } else {
+            // render
+            this.draw(true);
+        }
+    }
+    draw(shouldUpdate = false) {
+        this.shouldRender = true;
+
+        if (shouldUpdate) {
+            // Update
+            for (let j = 0; j < 4; j++) {
+                const position = geometry.attributes.position;
+                position.setXYZ(this.id * 4 + j, this.x, this.y, 0);
+                position.needsUpdate = true;
+
+                const size = geometry.attributes.size;
+                size.setXY(this.id * 4 + j, this.w, this.h);
+                size.needsUpdate = true;
+            }
+        } else {
+            // Initial
             this.id = totalRenderCount;
+
+            for (let j = 0; j < 4; j++) {
+                vertices.push(this.x, this.y, 0);
+                size.push(this.w, this.h);
+                if (Math.abs(this.w - this.h) < 100.0) {
+                    directions.push(-1.0);
+                } else if (this.w > this.h) {
+                    directions.push(1.0);
+                } else {
+                    directions.push(0.0);
+                }
+            }
 
             const color = {
                 x: map(Math.random(), 0.0, 1.0, 0.7, 0.8),
@@ -266,17 +373,8 @@ class Tile {
 
             for (let j = 0; j < 4; j++) {
                 index.push(this.id);
-                vertices.push(this.x, this.y, 0);
-                size.push(this.w, this.h);
                 paddings.push(padding, padding);
                 colors.push(color.x, color.y, color.z);
-                if (Math.abs(this.w - this.h) < 100.0) {
-                    directions.push(-1.0);
-                } else if (this.w > this.h) {
-                    directions.push(1.0);
-                } else {
-                    directions.push(0.0);
-                }
             }
 
             uvs.push(
@@ -309,15 +407,13 @@ class Tile {
             );
 
             totalRenderCount++;
-
-            console.log(`for render: x: ${this.x}, y: ${this.y}, w: ${this.w}, h: ${this.h}`);
         }
+
+        // console.log(`for render: x: ${this.x}, y: ${this.y}, w: ${this.w}, h: ${this.h}`);
     }
 }
 
 createTiles();
-scene.add(backgroundGroup);
-scene.add(objectGroup);
 
 window.addEventListener("resize", onResize);
 
