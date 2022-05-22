@@ -11,12 +11,12 @@ varying vec3 vColor;
 varying vec2 vResolution;
 varying float vDirection;
 
-// https://coolors.co/efefef-3454d1-34d1bf-070707-d1345b
-vec3 col1 = vec3(239.0, 239.0, 239.0) / 255.0;
-vec3 col2 = vec3(52.0, 84.0, 209.0) / 255.0;
-vec3 col3 = vec3(52.0, 209.0, 191.0) / 255.0;
-vec3 col4 = vec3(10.0, 10.0, 10.0) / 255.0;
-vec3 col5 = vec3(209.0, 52.0, 91.0) / 255.0;
+// https://coolors.co/2a2b2e-fe5d26-a4c2a8-826aed-87ff65
+vec3 col1 = vec3(42.0, 43.0, 46.0) / 255.0;
+vec3 col2 = vec3(254.0, 93.0, 38.0) / 255.0;
+vec3 col3 = vec3(164.0, 194.0, 168.0) / 255.0;
+vec3 col4 = vec3(130.0, 106.0, 237.0) / 255.0;
+vec3 col5 = vec3(135.0, 255.0, 101.0) / 255.0;
 
 mat2 rotate(float angle) {
     return mat2(
@@ -99,22 +99,32 @@ void main() {
     if (vDirection > 0.5) {
         // vertical stripe
         uv *= (id + 1.0);
+        uv.x += time * (id + 3.0);
         uv.x = fract(uv.x);
         uv.x -= 0.5;
         float v = step(0.5, fract(uv.x));
         color = getColor(id, v);
     } else if (vDirection < 0.0) {
-        // Dot
-        uv *= (id + 1.0);
-        vec2 id2 = floor(uv);
-        uv = fract(uv);
-        uv -= 0.5;
-        float r = 0.35 * snoise(id2) + 0.15;
-        float v = step(r * (sin(time * 5.0 + snoise(id2) * 10.0) * 0.5 + 0.5), length(uv));
-        color = getColor(id, v);
+        if (mod(id, 2.0) == 0.0) {
+            // Dot
+            uv *= (id + 10.0);
+            vec2 id2 = floor(uv);
+            uv = fract(uv);
+            uv -= 0.5;
+            float r = 0.35 * snoise(id2) + 0.15;
+            float v = step(r, fract(time * 2.0 - snoise(id2)));
+            color = getColor(id, v);
+        } else {
+            // Ripple
+            float l = 7.0;
+            uv = floor(uv * l) / l;
+            float v = step(0.5, fract(length(uv * 2.0) - time * id));
+            color = getColor(id, v);
+        }
     } else {
         // horizontal stripe
         uv *= (id + 1.0);
+        uv.y += time * (id + 3.0);
         uv.y = fract(uv.y);
         uv.y -= 0.5;
         float v = step(0.5, fract(uv.y));
