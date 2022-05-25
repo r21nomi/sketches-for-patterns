@@ -14,49 +14,48 @@ varying float vRatio;
 
 void main() {
     vec2 uv = (vUv.xy * vResolution * 2.0 - vResolution.xy) / min(vResolution.x, vResolution.y);
+    vec2 uvAspect = vResolution / min(vResolution.x, vResolution.y);
 
     float id = floor(mod(vIndex, 4.8));
     if (id == 0.0) {
         id = 1.0;
     }
 
-    vec3 color = vec3(0.0);
-    float idTime = time * id;
-    float ff = mod(idTime, 4.0);
-    float ccSize = 0.5;
-    float fffMax = 1.0 - ccSize;
-    float fff = (fract(idTime) * 2.0 - 1.0) * fffMax;
-    vec2 dd = vec2(1.0);
+    vec3 color = vec3(1.0);
 
-//    vec2 ooo = vResolution.xy / min(vResolution.x, vResolution.y);
-//    vec2 ooo2 = vec2(0.0);
-//    if (ooo.x > ooo.y) {
-//        ooo *= vec2(2.0, 1.0);
-//        ooo2 = vec2(ccSize / 1.0, 0.0);
-//    } else {
-//        ooo *= vec2(1.0, 2.0);
-//        ooo2 = vec2(0.0, ccSize / 1.0);
-//    }
+    for (int i = 0; i < 10; i++) {
+        float _speed = 0.2;
+        float idTime = time * id + float(i) * _speed;
+        float ballPosition = mod(idTime, 4.0);
+        float ballSize = 0.15;
+        float margin = 0.05;
+        vec2 maxMove = (uvAspect - margin) - ballSize;
+        vec2 move = (fract(idTime) * 2.0 - 1.0) * maxMove;
+        vec2 dd = vec2(1.0);
 
-    if (ff < 1.0) {
-        // left
-        dd = vec2(fff, fffMax);
-//        ooo2 *= -1.0;
-    } else if (ff < 2.0) {
-        // up
-        dd = vec2(fffMax, -fff);
-//        ooo2 *= -1.0;
-    } else if (ff < 3.0) {
-        // right
-        dd = vec2(-fff, -fffMax);
-    } else {
-        // down
-        dd = vec2(-fffMax, fff);
+        if (ballPosition < 1.0) {
+            // left
+            dd = vec2(move.x, maxMove.y);
+        } else if (ballPosition < 2.0) {
+            // up
+            dd = vec2(maxMove.x, -move.y);
+        } else if (ballPosition < 3.0) {
+            // right
+            dd = vec2(-move.x, -maxMove.y);
+        } else {
+            // down
+            dd = vec2(-maxMove.x, move.y);
+        }
+
+        // Circle
+        float cc = step(ballSize, length(uv + dd));
+
+        // Rect
+//        float cc = step(ballSize, length(uv.x + dd.x));
+//        cc = max(cc, step(ballSize, length(uv.y + dd.y)));
+
+        color *= vec3(cc);
     }
-
-//    float cc = step(ccSize, length(uv + dd * ooo + ooo2));
-    float cc = step(ccSize, length(uv + dd));
-    color = vec3(cc);
 
     float borderWidth = 2.0;
     if (vRatio < 0.01) {
