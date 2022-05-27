@@ -7,7 +7,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0.0,0.0,0.0);
 
 const MAX_AGE = 7;
-const duration = 6.0;
+const duration = 8.0;
 const geometry = new THREE.BufferGeometry();
 
 const index = [];
@@ -79,7 +79,7 @@ const render = () => {
     uniforms.bg.time.value = currentTime[0];
 
     if (baseTile) {
-        // baseTile.update();
+        baseTile.update();
     }
 
     camera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -257,7 +257,7 @@ class Tile {
             if (Math.abs(this.ratio - this.targetRatio) < 0.001) {
                 this.targetRatio = Math.random();
             }
-            const r = Math.max(Math.min(Math.abs(this.targetRatio - this.ratio) * 4, 0.05), 0.0);
+            const r = Math.max(Math.min(Math.abs(this.targetRatio - this.ratio) * 2, 0.05), 0.0);
             this.ratio += (this.targetRatio - this.ratio) * r;
 
             if (this.age % 2 === 0) {
