@@ -7,7 +7,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0.0,0.0,0.0);
 
 const MAX_AGE = 7;
-const duration = 8.0;
+const duration = 10.0;
 const geometry = new THREE.BufferGeometry();
 
 const index = [];
@@ -337,6 +337,10 @@ class Tile {
                 const ratio = geometry.attributes.ratio;
                 ratio.setX(targetIndex, this.impulse);
                 ratio.needsUpdate = true;
+
+                const direction = geometry.attributes.direction;
+                direction.setX(targetIndex, this.getDirection());
+                direction.needsUpdate = true;
             }
         } else {
             // Initial
@@ -345,13 +349,7 @@ class Tile {
             for (let j = 0; j < 4; j++) {
                 vertices.push(this.x, this.y, 0);
                 size.push(this.w, this.h);
-                if (Math.abs(this.w - this.h) < 100.0) {
-                    directions.push(-1.0);
-                } else if (this.w > this.h) {
-                    directions.push(1.0);
-                } else {
-                    directions.push(0.0);
-                }
+                directions.push(this.getDirection());
                 ratios.push(this.ratio);
             }
 
@@ -402,6 +400,15 @@ class Tile {
         }
 
         // console.log(`for render: x: ${this.x}, y: ${this.y}, w: ${this.w}, h: ${this.h}`);
+    }
+    getDirection() {
+        if (Math.abs(this.w - this.h) < 100.0) {
+            return -1.0;
+        } else if (this.w > this.h) {
+            return 1.0;
+        } else {
+            return 0.0;
+        }
     }
 }
 
