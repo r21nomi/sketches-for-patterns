@@ -12,12 +12,20 @@ varying vec2 vResolution;
 varying float vDirection;
 varying float vRatio;
 
-float ease_in_out_expo(float x) {
-    float t=x; float b=0.; float c=1.; float d=1.;
-    if (t==0.) return b;
-    if (t==d) return b+c;
-    if ((t/=d/2.) < 1.) return c/2. * pow(2., 10. * (t - 1.)) + b;
-    return c/2. * (-pow(2., -10. * --t) + 2.) + b;
+float ease_out_bounce(float x, float t, float b, float c, float d) {
+    if ((t/=d) < (1./2.75)) {
+        return c*(7.5625*t*t) + b;
+    } else if (t < (2./2.75)) {
+        return c*(7.5625*(t-=(1.5/2.75))*t + .75) + b;
+    } else if (t < (2.5/2.75)) {
+        return c*(7.5625*(t-=(2.25/2.75))*t + .9375) + b;
+    } else {
+        return c*(7.5625*(t-=(2.625/2.75))*t + .984375) + b;
+    }
+}
+
+float ease_out_bounce(float x){
+    return ease_out_bounce(x, x, 0.0, 1.0, 1.0);
 }
 
 float rect(vec2 size, vec2 uv) {
@@ -45,17 +53,19 @@ void main() {
         dir = vec2(0.0, 1.0);
     }
 
-    vec3 color1 = vec3(43.0, 45.0, 66.0) / 255.0;
-    vec3 color2 = vec3(141.0, 153.0, 174.0) / 255.0;
-    vec3 color3 = vec3(248.0, 243.0, 43.0) / 255.0;
-    vec3 color4 = vec3(255.0, 255.0, 255.0) / 255.0;
+    vec3 color1 = vec3(81.0, 229.0, 255.0) / 255.0;
+    vec3 color2 = vec3(68.0, 3.0, 129.0) / 255.0;
+    vec3 color3 = vec3(236.0, 54.0, 141.0) / 255.0;
+    vec3 color4 = vec3(255.0, 214.0, 192.0) / 255.0;
     vec3 bgColor = vec3(1.0);
     vec3 objColor = vec3(1.0);
+    vec3 edgeColor = vec3(1.0);
+    vec3 lastEdgeColor = vec3(1.0);
 
     for (int i = 0; i < 1; i++) {
         float _speed = 1.0;
-        float t = (time + vIndex) * 0.6;
-        float easing = ease_in_out_expo(fract(t));
+        float t = (time + vIndex) * 0.7;
+        float easing = ease_out_bounce(fract(t));
         float easedTime = floor(t) + easing;
         float idTime = easedTime + float(i) * _speed * id;
         float ballPosition = mod(idTime, 4.0);
@@ -65,6 +75,9 @@ void main() {
         vec2 move = (fract(idTime) * 2.0 - 1.0) * maxMove;
         vec2 dd = vec2(1.0);
         bool isVertical = false;
+        float edge = 0.0;
+        float lastEdge = 0.0;
+        float edgeSize = 1.0 * (1.0 - easing);
 
         if (ballPosition < 1.0) {
             // left
@@ -72,38 +85,56 @@ void main() {
             ballSize.x += easing * maxMove.x;
             dd = vec2(move.x - ballSize.x, 0.0);
             ballSize.y = maxMove.y;
+            edge = step(edgeSize, uv.x + move.x);
+            lastEdge = step(edgeSize, uv.y + maxMove.y);
 
             bgColor = color2;
             objColor = color3;
+            edgeColor = color4;
+            lastEdgeColor = color3;
         } else if (ballPosition < 2.0) {
             // up
             ballSize.y += easing * maxMove.y;
             dd = vec2(0.0, -move.y + ballSize.y);
             ballSize.x = maxMove.x;
+            edge = 1.0 - step(-edgeSize, uv.y - move.y);
+            lastEdge = step(edgeSize, uv.x + maxMove.x);
 
             bgColor = color3;
             objColor = color4;
+            edgeColor = color1;
+            lastEdgeColor = color4;
         } else if (ballPosition < 3.0) {
             // right
             isVertical = true;
             ballSize.x += easing * maxMove.x;
             dd = vec2(-move.x + ballSize.x, 0.0);
             ballSize.y = maxMove.y;
+            edge = 1.0 - step(-edgeSize, uv.x - move.x);
+            lastEdge = 1.0 - step(-edgeSize, uv.y - maxMove.y);
 
             bgColor = color4;
             objColor = color1;
+            edgeColor = color2;
+            lastEdgeColor = color1;
         } else {
             // down
             ballSize.y += easing * maxMove.y;
             dd = vec2(0.0, move.y - ballSize.y);
             ballSize.x = maxMove.x;
+            edge = step(edgeSize, uv.y + move.y);
+            lastEdge = 1.0 - step(-edgeSize, uv.x - maxMove.x);
 
             bgColor = color1;
             objColor = color2;
+            edgeColor = color3;
+            lastEdgeColor = color2;
         }
 
         // Rect
         float cc = rect(ballSize, uv + dd);
+        objColor = mix(edgeColor, objColor, edge);
+//        bgColor = mix(lastEdgeColor, bgColor, lastEdge);
 
         color *= vec3(cc);
     }
