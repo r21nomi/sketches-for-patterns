@@ -12,6 +12,13 @@ varying vec2 vResolution;
 varying float vDirection;
 varying float vRatio;
 
+mat2 rotate(float angle) {
+    return mat2(
+        sin(angle), -cos(angle),
+        cos(angle), sin(angle)
+    );
+}
+
 float ease_out_bounce(float x, float t, float b, float c, float d) {
     if ((t/=d) < (1./2.75)) {
         return c*(7.5625*t*t) + b;
@@ -31,6 +38,12 @@ float ease_out_bounce(float x){
 float rect(vec2 size, vec2 uv) {
     float cc = step(size.x, length(uv.x));
     return max(cc, step(size.y, length(uv.y)));
+}
+
+float close(vec2 uv, float size, float boldness) {
+    uv *= rotate(45.0 * PI / 180.0);
+    float c = rect(vec2(size), vec2(uv.x, uv.y * boldness));
+    return min(c, rect(vec2(size), vec2(uv.x * boldness, uv.y)));
 }
 
 void main() {
@@ -61,7 +74,8 @@ void main() {
     vec3 objColor = vec3(1.0);
     vec3 edgeColor = vec3(0.8);
     vec3 lastEdgeColor = vec3(0.8);
-    vec3 closeButtonColor = vec3(0.7);
+    vec3 closeButtonBGColor = vec3(0.7);
+    vec3 closeButtonColor = vec3(0.2);
     vec2 closeButton = vec2(0.0);
     vec2 lastCloseButton = vec2(0.0);
     float edgeSize = 0.2;
@@ -133,7 +147,7 @@ void main() {
             ballSize.x = maxMove.x;
             edge = step(edgeSize, length(uv.y + move.y - uvAspect.y * 2.0));
             lastEdge = edge;
-            closeButton = vec2(uv.x - uvAspect.x, uv.y - maxMove.y);
+            closeButton = vec2(uv.x - uvAspect.x, uv.y + move.y - uvAspect.y * 2.0);
             lastCloseButton = vec2(uv.x - uvAspect.x, uv.y - maxMove.y);
 
             bgColor = color1;
@@ -142,19 +156,27 @@ void main() {
             lastEdgeColor = color2;
         }
 
-        // Rect
+        // rect for window
         float cc = rect(ballSize, uv + dd);
-        objColor = mix(edgeColor, objColor, edge);
+
+        // last window
         bgColor = mix(lastEdgeColor, bgColor, lastEdge);
+        color = mix(color, bgColor, cc);
 
-        color *= vec3(cc);
+        vec2 closeButtonProp = vec2(0.08, 6.0);  // size, boldness
+
+        // last close button
+        color = mix(closeButtonBGColor, color, rect(vec2(edgeSize * 0.5), lastCloseButton + edgeSize * 0.5));
+        color = mix(closeButtonColor, color, close(lastCloseButton + edgeSize * 0.5, closeButtonProp.x, closeButtonProp.y));
+
+        // new window
+        objColor = mix(edgeColor, objColor, edge);
+        color = mix(objColor, color, cc);
+
+        // new colose button
+        color = mix(closeButtonBGColor, color, rect(vec2(edgeSize * 0.5), closeButton + edgeSize * 0.5));
+        color = mix(closeButtonColor, color, close(closeButton + edgeSize * 0.5, closeButtonProp.x, closeButtonProp.y));
     }
-
-    color = mix(objColor, bgColor, color);
-
-    // close button
-    color = mix(closeButtonColor, color, rect(vec2(edgeSize * 0.5), closeButton + edgeSize * 0.5));
-    color = mix(closeButtonColor, color, rect(vec2(edgeSize * 0.5), lastCloseButton + edgeSize * 0.5));
 
     float borderWidth = 1.0;
 
