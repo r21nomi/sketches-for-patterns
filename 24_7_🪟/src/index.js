@@ -7,7 +7,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0.0,0.0,0.0);
 
 const MAX_AGE = 7;
-const duration = 8.0;
+const duration = 12.0;
 const geometry = new THREE.BufferGeometry();
 
 const index = [];
@@ -79,7 +79,7 @@ const render = () => {
     uniforms.bg.time.value = currentTime[0];
 
     if (baseTile) {
-        // baseTile.update();
+        baseTile.update();
     }
 
     camera.lookAt(new THREE.Vector3(0, 0, 0));

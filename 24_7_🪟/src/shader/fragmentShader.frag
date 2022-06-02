@@ -46,6 +46,18 @@ float close(vec2 uv, float size, float boldness) {
     return min(c, rect(vec2(size), vec2(uv.x * boldness, uv.y)));
 }
 
+vec3 borderRect(vec3 color, vec2 size, vec2 uv, vec2 uvAspect) {
+    float r1 = rect(size, uv);
+    float r2 = rect(size - 0.015, uv);
+    float border = abs(r1 - r2);
+
+    float d = step(0.0, dot(uv * rotate(0.0 * PI / 180.0), uvAspect));
+    vec3 borderColor = mix(vec3(1.0), vec3(0.0), d);
+    color = mix(color, borderColor, border);
+
+    return color;
+}
+
 void main() {
     vec2 uv = (vUv.xy * vResolution * 2.0 - vResolution.xy) / min(vResolution.x, vResolution.y);
     vec2 uvAspect = vResolution / min(vResolution.x, vResolution.y);
@@ -72,19 +84,20 @@ void main() {
     vec3 color4 = vec3(200.0, 200.0, 200.0) / 255.0;
     vec3 bgColor = vec3(1.0);
     vec3 objColor = vec3(1.0);
-    vec3 edgeColor = vec3(0.8);
-    vec3 lastEdgeColor = vec3(0.8);
+    vec3 g = mix(vec3(0.0, 0.0, 0.8), vec3(0.0, 0.5, 0.8), uv.x / uvAspect.x);
+    vec3 edgeColor = g;
+    vec3 lastEdgeColor = g;
     vec3 closeButtonBGColor = vec3(0.7);
     vec3 closeButtonColor = vec3(0.2);
     vec2 closeButton = vec2(0.0);
     vec2 lastCloseButton = vec2(0.0);
     float edgeSize = 0.2;
+    float t = (time + vIndex) * 0.7;
+    float easing = ease_out_bounce(fract(t));
+    float easedTime = floor(t) + easing;
 
     for (int i = 0; i < 1; i++) {
         float _speed = 1.0;
-        float t = (time + vIndex) * 0.7;
-        float easing = ease_out_bounce(fract(t));
-        float easedTime = floor(t) + easing;
         float idTime = easedTime + float(i) * _speed * id;
         float ballPosition = mod(idTime, 4.0);
         vec2 ballSize = vec2(0.0);
@@ -109,8 +122,6 @@ void main() {
 
             bgColor = color2;
             objColor = color3;
-            edgeColor = color4;
-            lastEdgeColor = color3;
         } else if (ballPosition < 2.0) {
             // up
             ballSize.y += easing * maxMove.y;
@@ -123,8 +134,6 @@ void main() {
 
             bgColor = color3;
             objColor = color4;
-            edgeColor = color1;
-            lastEdgeColor = color4;
         } else if (ballPosition < 3.0) {
             // right
             isVertical = true;
@@ -138,8 +147,6 @@ void main() {
 
             bgColor = color4;
             objColor = color1;
-            edgeColor = color2;
-            lastEdgeColor = color1;
         } else {
             // down
             ballSize.y += easing * maxMove.y;
@@ -152,8 +159,6 @@ void main() {
 
             bgColor = color1;
             objColor = color2;
-            edgeColor = color3;
-            lastEdgeColor = color2;
         }
 
         // rect for window
@@ -162,20 +167,24 @@ void main() {
         // last window
         bgColor = mix(lastEdgeColor, bgColor, lastEdge);
         color = mix(color, bgColor, cc);
+        color = borderRect(color, uvAspect, uv, uvAspect);
 
-        vec2 closeButtonProp = vec2(0.08, 6.0);  // size, boldness
+        vec2 closeButtonProp = vec2(0.07, 7.0);  // size, boldness
 
         // last close button
         color = mix(closeButtonBGColor, color, rect(vec2(edgeSize * 0.5), lastCloseButton + edgeSize * 0.5));
         color = mix(closeButtonColor, color, close(lastCloseButton + edgeSize * 0.5, closeButtonProp.x, closeButtonProp.y));
+        color = borderRect(color, vec2(edgeSize * 0.5), lastCloseButton + edgeSize * 0.5, vec2(1.0));
 
         // new window
         objColor = mix(edgeColor, objColor, edge);
         color = mix(objColor, color, cc);
+        color = borderRect(color, ballSize, uv + dd, ballSize);
 
         // new colose button
         color = mix(closeButtonBGColor, color, rect(vec2(edgeSize * 0.5), closeButton + edgeSize * 0.5));
         color = mix(closeButtonColor, color, close(closeButton + edgeSize * 0.5, closeButtonProp.x, closeButtonProp.y));
+        color = borderRect(color, vec2(edgeSize * 0.5), closeButton + edgeSize * 0.5, vec2(1.0));
     }
 
     float borderWidth = 1.0;
