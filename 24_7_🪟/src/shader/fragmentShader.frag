@@ -46,16 +46,32 @@ float close(vec2 uv, float size, float boldness) {
     return min(c, rect(vec2(size), vec2(uv.x * boldness, uv.y)));
 }
 
-vec3 borderRect(vec3 color, vec2 size, vec2 uv, vec2 uvAspect) {
+float borderRect(vec2 size, vec2 uv, float boldness) {
     float r1 = rect(size, uv);
-    float r2 = rect(size - 0.015, uv);
+    float r2 = rect(size - boldness, uv);
     float border = abs(r1 - r2);
+    return border;
+}
+
+vec3 borderRect(vec3 color, vec2 size, vec2 uv, vec2 uvAspect) {
+    float border = borderRect(size, uv, 0.015);
 
     float d = step(0.0, dot(uv * rotate(0.0 * PI / 180.0), uvAspect));
     vec3 borderColor = mix(vec3(1.0), vec3(0.0), d);
     color = mix(color, borderColor, border);
 
     return color;
+}
+
+float maximizing(vec2 uv, vec2 size) {
+    float border = borderRect(size, uv, 0.015);
+    return border;
+}
+
+float minimizing(vec2 uv, vec2 size) {
+    uv.y += 0.035;
+    float border = rect(vec2(size.x, size.y * 0.2), uv);
+    return border;
 }
 
 void main() {
@@ -91,6 +107,10 @@ void main() {
     vec3 closeButtonColor = vec3(0.2);
     vec2 closeButton = vec2(0.0);
     vec2 lastCloseButton = vec2(0.0);
+    vec2 maximizingButton = vec2(0.0);
+    vec2 lastMaximizingButton = vec2(0.0);
+    vec2 minimizingButton = vec2(0.0);
+    vec2 lastMinimizingButton = vec2(0.0);
     float edgeSize = 0.2;
     float t = (time + vIndex) * 0.7;
     float easing = ease_out_bounce(fract(t));
@@ -119,6 +139,10 @@ void main() {
             lastEdge = edge;
             closeButton = vec2(uv.x + move.x - uvAspect.x * 2.0, uv.y - maxMove.y);
             lastCloseButton = vec2(uv.x - uvAspect.x, uv.y - maxMove.y);
+            maximizingButton = closeButton;
+            lastMaximizingButton = lastCloseButton;
+            minimizingButton = closeButton;
+            lastMinimizingButton = lastCloseButton;
 
             bgColor = color2;
             objColor = color3;
@@ -131,6 +155,10 @@ void main() {
             lastEdge = 1.0 - step(-edgeSize, uv.y - maxMove.y);
             closeButton = vec2(uv.x - uvAspect.x, uv.y - move.y);
             lastCloseButton = vec2(uv.x - uvAspect.x, uv.y - maxMove.y);
+            maximizingButton = closeButton;
+            lastMaximizingButton = lastCloseButton;
+            minimizingButton = closeButton;
+            lastMinimizingButton = lastCloseButton;
 
             bgColor = color3;
             objColor = color4;
@@ -144,6 +172,10 @@ void main() {
             lastEdge = edge;
             closeButton = vec2(uv.x - move.x, uv.y - maxMove.y);
             lastCloseButton = vec2(uv.x - uvAspect.x, uv.y - maxMove.y);
+            maximizingButton = closeButton;
+            lastMaximizingButton = lastCloseButton;
+            minimizingButton = closeButton;
+            lastMinimizingButton = lastCloseButton;
 
             bgColor = color4;
             objColor = color1;
@@ -156,6 +188,10 @@ void main() {
             lastEdge = edge;
             closeButton = vec2(uv.x - uvAspect.x, uv.y + move.y - uvAspect.y * 2.0);
             lastCloseButton = vec2(uv.x - uvAspect.x, uv.y - maxMove.y);
+            maximizingButton = closeButton;
+            lastMaximizingButton = lastCloseButton;
+            minimizingButton = closeButton;
+            lastMinimizingButton = lastCloseButton;
 
             bgColor = color1;
             objColor = color2;
@@ -169,12 +205,31 @@ void main() {
         color = mix(color, bgColor, cc);
         color = borderRect(color, uvAspect, uv, uvAspect);
 
-        vec2 closeButtonProp = vec2(0.07, 7.0);  // size, boldness
+        vec2 closeButtonProp = vec2(0.06, 7.0);  // size, boldness
+
+        vec2 btnSize = vec2(edgeSize * 0.4);
+        float btnYOssset = 0.01;
 
         // last close button
-        color = mix(closeButtonBGColor, color, rect(vec2(edgeSize * 0.5), lastCloseButton + edgeSize * 0.5));
-        color = mix(closeButtonColor, color, close(lastCloseButton + edgeSize * 0.5, closeButtonProp.x, closeButtonProp.y));
-        color = borderRect(color, vec2(edgeSize * 0.5), lastCloseButton + edgeSize * 0.5, vec2(1.0));
+        vec2 lastColseBtnPos = lastCloseButton + vec2(edgeSize * 0.5, edgeSize * 0.5 + btnYOssset);
+        color = mix(closeButtonBGColor, color, rect(btnSize, lastColseBtnPos));
+        color = mix(closeButtonColor, color, close(lastColseBtnPos, closeButtonProp.x, closeButtonProp.y));
+        color = borderRect(color, btnSize, lastColseBtnPos, vec2(1.0));
+
+        vec2 _maximizingPos = vec2(edgeSize * 1.4, edgeSize * 0.5 + btnYOssset);
+        vec2 _minimizingPos = vec2(edgeSize * 2.2, edgeSize * 0.5 + btnYOssset);
+
+        // last maximizing button
+        vec2 lastMaximizingBtnPos = lastMaximizingButton + _maximizingPos;
+        color = mix(closeButtonBGColor, color, rect(btnSize, lastMaximizingBtnPos));
+        color = mix(color, closeButtonColor, maximizing(lastMaximizingBtnPos, vec2(0.05, 0.05)));
+        color = borderRect(color, btnSize, lastMaximizingBtnPos, vec2(1.0));
+
+        // last minimizing button
+        vec2 lastMinimizingBtnPos = lastMinimizingButton + _minimizingPos;
+        color = mix(closeButtonBGColor, color, rect(btnSize, lastMinimizingBtnPos));
+        color = mix(closeButtonColor, color, minimizing(lastMinimizingBtnPos, vec2(0.05, 0.05)));
+        color = borderRect(color, btnSize, lastMinimizingBtnPos, vec2(1.0));
 
         // new window
         objColor = mix(edgeColor, objColor, edge);
@@ -182,9 +237,22 @@ void main() {
         color = borderRect(color, ballSize, uv + dd, ballSize);
 
         // new colose button
-        color = mix(closeButtonBGColor, color, rect(vec2(edgeSize * 0.5), closeButton + edgeSize * 0.5));
-        color = mix(closeButtonColor, color, close(closeButton + edgeSize * 0.5, closeButtonProp.x, closeButtonProp.y));
-        color = borderRect(color, vec2(edgeSize * 0.5), closeButton + edgeSize * 0.5, vec2(1.0));
+        vec2 colseBtnPos = closeButton + vec2(edgeSize * 0.5, edgeSize * 0.5 + btnYOssset);
+        color = mix(closeButtonBGColor, color, rect(btnSize, colseBtnPos));
+        color = mix(closeButtonColor, color, close(colseBtnPos, closeButtonProp.x, closeButtonProp.y));
+        color = borderRect(color, btnSize, colseBtnPos, vec2(1.0));
+
+        // maximizing button
+        vec2 maximizingBtnPos = maximizingButton + _maximizingPos;
+        color = mix(closeButtonBGColor, color, rect(btnSize, maximizingBtnPos));
+        color = mix(color, closeButtonColor, maximizing(maximizingBtnPos, vec2(0.05, 0.05)));
+        color = borderRect(color, btnSize, maximizingBtnPos, vec2(1.0));
+
+        // minimizing button
+        vec2 minimizingBtnPos = minimizingButton + _minimizingPos;
+        color = mix(closeButtonBGColor, color, rect(btnSize, minimizingBtnPos));
+        color = mix(closeButtonColor, color, minimizing(minimizingBtnPos, vec2(0.05, 0.05)));
+        color = borderRect(color, btnSize, minimizingBtnPos, vec2(1.0));
     }
 
     float borderWidth = 1.0;
