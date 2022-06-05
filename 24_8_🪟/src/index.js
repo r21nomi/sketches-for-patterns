@@ -46,7 +46,7 @@ const uniforms = {
 let currentTime = [0];
 let imageIndex = 0;
 let isImageGenerationMode = false;
-let showGenerateImageButton = true;
+let showGenerateImageButton = false;
 const span = 0.01;
 let timeoutSpan = 100;
 
