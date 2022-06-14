@@ -29,6 +29,17 @@ float x(vec2 uv, float size, float boldness) {
     return min(c, rect(vec2(size), vec2(uv.x * boldness, uv.y)));
 }
 
+float stripe(float uv, float freq) {
+    return step(0.5, length(fract(uv * freq)));
+}
+
+float stripeBox(vec2 uv, float freq, float boldness, float _time) {
+    uv = abs(uv * freq) + _time;
+    float m = max(uv.x, uv.y);
+    float v = step(boldness, mod(m, 1.0));
+    return v;
+}
+
 void main() {
     vec2 uv = (vUv.xy * vResolution * 2.0 - vResolution.xy) / min(vResolution.x, vResolution.y);
     vec2 uvAspect = vResolution / min(vResolution.x, vResolution.y);
@@ -44,8 +55,13 @@ void main() {
 
     float v = x(uv, 1.0, 5.0);
 
-    vec3 obj = mix(vec3(0.0, 0.0, 0.98), vec3(1.0), vRatio * 5.0);
-    vec3 bg = vec3(0.9);
+    float _stripe = stripe(uv.x + uv.y + time, 5.0);
+    vec3 obj1 = mix(vec3(1.0), vec3(0.0, 0.0, 0.0), _stripe);
+    vec3 obj2 = mix(vec3(0.0, 1.0, 0.0), vec3(0.0, 1.0, 0.0), _stripe);
+    vec3 obj = mix(obj1, obj2, vRatio * 5.0);
+
+    float _stripeBox = stripeBox(uv, 100.0 * vRatio, 0.5, -time * vRatio);
+    vec3 bg = mix(mix(vec3(0.0, 0.0, 0.0), vec3(0.0, 0.1, 0.0), 10.0 * vRatio), vec3(1.0), _stripeBox);
     vec3 color = mix(obj, bg, v);
 
     gl_FragColor = vec4(color, 1.0);

@@ -4,7 +4,7 @@ const fragmentShader = require('webpack-glsl-loader!./shader/fragmentShader.frag
 
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0.9, 0.9, 0.9);
+scene.background = new THREE.Color(1.0, 1.0, 1.0);
 
 const MAX_AGE = 8;
 const duration = 12.0;
@@ -359,7 +359,7 @@ class Tile {
                 z: map(Math.random(), 0.0, 1.0, 0.1, 0.3),
             };
 
-            const padding = 4.0;
+            const padding = 5.0;
 
             for (let j = 0; j < 4; j++) {
                 index.push(this.id);
