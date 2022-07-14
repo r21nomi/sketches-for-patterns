@@ -4,9 +4,9 @@ const fragmentShader = require('webpack-glsl-loader!./shader/fragmentShader.frag
 
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(1.0, 1.0, 1.0);
+scene.background = new THREE.Color(0.1, 0.1, 0.1);
 
-const MAX_AGE = 7;
+const MAX_AGE = 12;
 const duration = 12.0;
 const geometry = new THREE.BufferGeometry();
 
@@ -20,27 +20,10 @@ const colors = [];
 const size = [];
 const directions = [];
 const ratios = [];
+const weights = [];
 
 let baseTile;
 let totalRenderCount = 0;
-
-const uniforms = {
-    rect: {
-        time: { type: "f", value: 1.0 },
-        resolution: { type: "v2", value: new THREE.Vector2() },
-        uWidth: {
-            value: 1,
-        },
-        uHeight: {
-            value: 1,
-        },
-        duration: { type: "f", value: duration }
-    },
-    bg: {
-        time: { type: "f", value: 1.0 },
-        resolution: { type: "v2", value: new THREE.Vector2() }
-    }
-};
 
 // For dev
 let currentTime = [0];
@@ -49,6 +32,13 @@ let isImageGenerationMode = false;
 let showGenerateImageButton = false;
 const span = 0.01;
 let timeoutSpan = 100;
+
+const uniforms = {
+    rect: {
+        time: { type: "f", value: 1.0 },
+        resolution: { type: "v2", value: new THREE.Vector2() },
+    }
+};
 
 const map = (value, beforeMin, beforeMax, afterMin, afterMax) => {
     return afterMin + (afterMax - afterMin) * ((value - beforeMin) / (beforeMax - beforeMin));
@@ -76,7 +66,6 @@ const render = () => {
     }
 
     uniforms.rect.time.value = currentTime[0];
-    uniforms.bg.time.value = currentTime[0];
 
     if (baseTile) {
         baseTile.update();
@@ -99,6 +88,8 @@ const onResize = () => {
 const setSize = (width, height) => {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+
+    uniforms.rect.resolution.value = new THREE.Vector2(width, height);
 
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(width, height);
@@ -153,6 +144,9 @@ if (showGenerateImageButton) {
 const renderTiles = () => {
     geometry.setIndex(indices);
     geometry.setAttribute('index', new THREE.Uint16BufferAttribute(index, 1));
+    geometry.setAttribute('totalIndex', new THREE.Float32BufferAttribute([...Array(index.length)].map(
+        (_, index) => totalRenderCount
+    ), 1));
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     geometry.setAttribute('uv', new THREE.Uint16BufferAttribute(uvs, 2));
     geometry.setAttribute('size', new THREE.Float32BufferAttribute(size, 2));
@@ -161,6 +155,7 @@ const renderTiles = () => {
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geometry.setAttribute('direction', new THREE.Float32BufferAttribute(directions, 1));
     geometry.setAttribute('ratio', new THREE.Float32BufferAttribute(ratios, 1));
+    geometry.setAttribute('weight', new THREE.Float32BufferAttribute(weights, 2));
 
     const material = new THREE.RawShaderMaterial({
         uniforms: uniforms.rect,
@@ -198,6 +193,7 @@ class Tile {
         this.shouldRender = false;
         this.id = -1;
         this.impulse = 0;
+        this.updateCount = 0;
 
         if (this.age < MAX_AGE) {
             const nextAge = this.age + 1;
@@ -253,12 +249,22 @@ class Tile {
             this.impulse = arg.impulse;
         }
         if (this.children.length > 0) {
-            const ratioDiff = Math.abs(this.ratio - this.targetRatio);
-            if (Math.abs(this.ratio - this.targetRatio) < 0.001) {
-                this.targetRatio = Math.random();
+            let ratioDiff = Math.abs(this.ratio - this.targetRatio);
+            if (ratioDiff < 0.002) {
+                if (this.updateCount % 4 === 0) {
+                    this.targetRatio = 0.5;
+                } else {
+                    this.targetRatio = Math.random();
+                }
+                // this.targetRatio = Math.random();
+                this.updateCount++;
             }
-            const r = Math.max(Math.min(Math.abs(this.targetRatio - this.ratio) * 2, 0.04), 0.0);
+            if (ratioDiff < 0.005) {
+                ratioDiff = 0;
+            }
+            const r = Math.max(Math.min(Math.abs(this.targetRatio - this.ratio) * 2, 0.03), 0.0);
             this.ratio += (this.targetRatio - this.ratio) * r;
+            this.ratio = Math.max(Math.min(this.ratio, 1), 0);
 
             if (this.age % 2 === 0) {
                 // horizontal
@@ -323,6 +329,8 @@ class Tile {
 
         if (shouldUpdate) {
             // Update
+            const screenPos = this.getDistanceFromScreenCenter();
+
             for (let j = 0; j < 4; j++) {
                 const targetIndex = this.id * 4 + j;
 
@@ -341,16 +349,22 @@ class Tile {
                 const direction = geometry.attributes.direction;
                 direction.setX(targetIndex, this.getDirection());
                 direction.needsUpdate = true;
+
+                const weight = geometry.attributes.weight;
+                weight.setXY(targetIndex, screenPos.x, screenPos.y);
+                weight.needsUpdate = true;
             }
         } else {
             // Initial
             this.id = totalRenderCount;
+            const screenPos = this.getDistanceFromScreenCenter();
 
             for (let j = 0; j < 4; j++) {
                 vertices.push(this.x, this.y, 0);
                 size.push(this.w, this.h);
                 directions.push(this.getDirection());
                 ratios.push(this.ratio);
+                weights.push(screenPos.x, screenPos.y);
             }
 
             const color = {
@@ -359,7 +373,7 @@ class Tile {
                 z: map(Math.random(), 0.0, 1.0, 0.1, 0.3),
             };
 
-            const padding = 4.0;
+            const padding = 2.0;
 
             for (let j = 0; j < 4; j++) {
                 index.push(this.id);
@@ -410,13 +424,29 @@ class Tile {
             return 0.0;
         }
     }
+    getCenter() {
+        return {
+            x: this.x + this.w / 2,
+            y: this.y + this.h / 2
+        }
+    }
+    getDistanceFromScreenCenter() {
+        const centerOfTile = this.getCenter();
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        return {
+            // x: (centerOfTile.x) / w,
+            // y: (centerOfTile.y) / h
+            x: (centerOfTile.x + w / 2) / w,
+            y: (centerOfTile.y + h / 2) / h
+        };
+    }
 }
-
-createTiles();
 
 if (!showGenerateImageButton) {
     window.addEventListener("resize", onResize);
 }
 
+createTiles();
 onResize();
 render();

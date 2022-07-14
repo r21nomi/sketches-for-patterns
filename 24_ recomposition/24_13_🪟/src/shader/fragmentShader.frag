@@ -36,7 +36,7 @@ float rect(vec2 size, vec2 uv, float edge) {
 vec3 edgeStripe(vec3 edgeColor, vec2 uv, vec2 uvAspect) {
     vec3 c = mix(edgeColor * 0.0, edgeColor, step(0.4, fract(uv.y * 30.0)));
     c = mix(c, edgeColor, step(uvAspect.x - 0.04, length(uv.x)));
-    c = mix(c, edgeColor, step(uvAspect.y - 0.04, length(uv.y)));
+    c = mix(c, edgeColor, step(0.005, uv.y));
     return c;
 }
 
@@ -226,9 +226,10 @@ void main() {
     }
 
     // last window
-    lastEdgeColor = edgeStripe(lastEdgeColor, uv, uvAspect);
+    lastEdgeColor = edgeStripe(lastEdgeColor, vec2(uv.x, edgeY), uvAspect);
     bgColor = windowContent(uv, bgColor);
-    bgColor = mix(lastEdgeColor, bgColor, lastEdge);
+    bgColor = mix(vec3(1.0, 0.0, 0.0), bgColor, lastEdge);
+//    bgColor = mix(lastEdgeColor, bgColor, lastEdge);
     color = mix(bgColor, color, rect(lastBallSize, uv, windowRadius));
     color = borderRect(color, windowBorderColor, uvAspect, uv, windowBorderBoldness, windowRadius);
     // border
