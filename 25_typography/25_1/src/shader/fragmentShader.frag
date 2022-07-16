@@ -24,11 +24,15 @@ void main() {
         max((vResolution.x / vResolution.y) / (textureResolution.x / textureResolution.y), 1.0),
         max((vResolution.y / vResolution.x) / (textureResolution.y / textureResolution.x), 1.0)
     );
-    vec2 uvForTex = vec2(
-        vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
-        vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
+
+    float t = time * 1.1 + vIndex;
+    vec2 p = vec2(
+        floor(fract(t) * 5.0),
+        floor(mod(t, 5.0))
     );
-    uvForTex = vUv;
+    vec2 eachSize = textureResolution / 5.0 / textureResolution;
+    vec2 ff = vec2(p.x, p.y);
+    vec2 uvForTex = vec2(vUv.x * eachSize.x + eachSize.x * ff.x, vUv.y * eachSize.y + (1.0 - eachSize.y) - eachSize.y * ff.y + 0.015);
 
     vec4 tex = texture2D(texture, uvForTex);
     vec3 color = tex.rgb;

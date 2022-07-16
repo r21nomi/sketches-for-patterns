@@ -177,21 +177,36 @@ const renderTiles = () => {
 };
 
 const createTextTexture = () => {
+    const originalText = "おはようございます、みなさん";
     let txt = [];
-    txt.push("abcdefg");
-    txt.push("hijklmn");
+
+    const textNum = 5;
+    for (let i = 0, len = originalText.length; i < len; i += textNum) {
+        let textFrag = originalText.slice(i, i + textNum);
+        if (textFrag.length < textNum) {
+            while (textFrag.length < textNum) {
+                textFrag += "　";
+            }
+        }
+        txt.push(textFrag);
+    }
+    if (txt.length < textNum) {
+        while (txt.length < textNum) {
+            txt.push("　　　　　");
+        }
+    }
     const canvas = document.createElement("canvas");
-    canvas.width = 1024;
-    canvas.height = 1024;
+    canvas.width = 1000;
+    canvas.height = 1000;
 
     const ctx = canvas.getContext("2d");
-    ctx.font = "100px LucidaSansUnicode";
+    ctx.font = "200px 'Arial'";
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
 
-    for ( let i = 0; i < txt.length; i ++ ) {
-        ctx.fillText( txt[i], 0, 100 * i );
+    for (let i = 0; i < txt.length; i ++) {
+        ctx.fillText(txt[i], 0, 200 * i);
     }
 
     const texture = new THREE.Texture(canvas);
