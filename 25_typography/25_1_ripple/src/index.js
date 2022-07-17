@@ -4,10 +4,11 @@ const fragmentShader = require('webpack-glsl-loader!./shader/fragmentShader.frag
 
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0.1, 0.1, 0.1);
+scene.background = new THREE.Color(0.15, 0.15, 0.15);
 
-const MAX_AGE = 8;
+const MAX_AGE = 11;
 const duration = 12.0;
+const PADDING = 0.5;
 const geometry = new THREE.BufferGeometry();
 
 const index = [];
@@ -24,6 +25,7 @@ const weights = [];
 
 let baseTile;
 let totalRenderCount = 0;
+let lastUpdatedTime = 0;
 
 // For dev
 let currentTime = [0];
@@ -39,6 +41,7 @@ const uniforms = {
         resolution: { type: "v2", value: new THREE.Vector2() },
         texture: { type: 't', value: null },
         textureResolution: { type: "v2", value: new THREE.Vector2() },
+        textureBlockSize: { type: "f", value: 1.0 },
     }
 };
 
@@ -71,6 +74,12 @@ const render = () => {
 
     if (baseTile) {
         // baseTile.update();
+        //
+        // const sec = Math.floor(currentTime[0]);
+        // if (sec !== lastUpdatedTime && sec % 10 === 0) {
+        //     baseTile.updateTarget(0.5);
+        //     lastUpdatedTime = sec;
+        // }
     }
 
     camera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -177,42 +186,37 @@ const renderTiles = () => {
 };
 
 const createTextTexture = () => {
-    const originalText = "おはようございます、みなさん";
-    let txt = [];
+    const textNum = 9;
+    const textSize = 200;
 
-    const textNum = 5;
-    for (let i = 0, len = originalText.length; i < len; i += textNum) {
-        let textFrag = originalText.slice(i, i + textNum);
-        if (textFrag.length < textNum) {
-            while (textFrag.length < textNum) {
-                textFrag += "　";
-            }
-        }
-        txt.push(textFrag);
+    let originalText = "あのイーハトーヴォのすきとおった風、夏でも底に冷たさをもつ青いそら、うつくしい森で飾られたモリーオ市、郊外のぎらぎらひかる草の波。";
+    originalText = originalText.slice(0, textNum * textNum);
+
+    while (originalText.length < textNum * textNum) {
+        originalText += "　";
     }
-    if (txt.length < textNum) {
-        while (txt.length < textNum) {
-            txt.push("　　　　　");
-        }
-    }
+
     const canvas = document.createElement("canvas");
-    canvas.width = 1000;
-    canvas.height = 1000;
+    canvas.width = textNum * textSize;
+    canvas.height = textNum * textSize;
 
     const ctx = canvas.getContext("2d");
-    ctx.font = "200px 'Arial'";
+    ctx.font = `${textSize * 0.8}px 'Arial'`;
     ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
-    for (let i = 0; i < txt.length; i ++) {
-        ctx.fillText(txt[i], 0, 200 * i);
+    for (let i = 0; i < originalText.length; i ++) {
+        const x = i % textNum * textSize + textSize / 2;
+        const y = Math.floor(i / textNum) * textSize + textSize / 2;
+        ctx.fillText(originalText[i], x, y);
     }
 
     const texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
     uniforms.rect.texture.value = texture;
     uniforms.rect.textureResolution.value = new THREE.Vector2(canvas.width, canvas.height);
+    uniforms.rect.textureBlockSize.value = textNum;
 };
 
 const createTiles = () => {
@@ -230,7 +234,8 @@ class Tile {
         this.age = age;
         this.children = [];
         this.offset = Math.floor(Math.random() * 50 + 1);
-        this.ratio = Math.random();
+        // this.ratio = Math.random();
+        this.ratio = 0.5;
         this.targetRatio = this.ratio;
         this.shouldRender = false;
         this.id = -1;
@@ -282,6 +287,14 @@ class Tile {
             this.draw(false);
         }
     }
+    updateTarget(ratio) {
+        if (this.children.length > 0) {
+            this.targetRatio = !!ratio ? ratio : Math.random();
+            const _ratio = !!ratio ? ratio : null;
+            this.children[0].updateTarget(_ratio);
+            this.children[1].updateTarget(_ratio);
+        }
+    }
     update(arg = null) {
         if (!!arg) {
             this.x = arg.x;
@@ -293,18 +306,15 @@ class Tile {
         if (this.children.length > 0) {
             let ratioDiff = Math.abs(this.ratio - this.targetRatio);
             if (ratioDiff < 0.002) {
-                if (this.updateCount % 4 === 0) {
-                    this.targetRatio = 0.5;
-                } else {
-                    this.targetRatio = Math.random();
-                }
-                // this.targetRatio = Math.random();
+                this.targetRatio = Math.random();
                 this.updateCount++;
             }
             if (ratioDiff < 0.005) {
                 ratioDiff = 0;
             }
-            const r = Math.max(Math.min(Math.abs(this.targetRatio - this.ratio) * 2, 0.03), 0.0);
+            const duration = 0.5;
+            const speed = 0.04;
+            const r = Math.max(Math.min(Math.abs(this.targetRatio - this.ratio) / duration, speed), 0.0);
             this.ratio += (this.targetRatio - this.ratio) * r;
             this.ratio = Math.max(Math.min(this.ratio, 1), 0);
 
@@ -415,11 +425,9 @@ class Tile {
                 z: map(Math.random(), 0.0, 1.0, 0.1, 0.3),
             };
 
-            const padding = 2.0;
-
             for (let j = 0; j < 4; j++) {
                 index.push(this.id);
-                paddings.push(padding, padding);
+                paddings.push(PADDING, PADDING);
                 colors.push(color.x, color.y, color.z);
             }
 

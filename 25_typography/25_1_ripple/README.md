@@ -1,4 +1,4 @@
-# 25_1
+# 25_1_ripple
 ![](art/art.png)
 
 ### How to generate video
