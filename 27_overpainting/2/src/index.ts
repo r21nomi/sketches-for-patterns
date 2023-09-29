@@ -61,7 +61,7 @@ class Painter {
       shuffle([1, -1])[0]
     )
     this.delayOffset = Math.floor(Math.random() * 2 + 2)
-    this.speed = createVector(0.85, 0.85)
+    this.speed = createVector(0.0, 0.0)
     this.noise = createNoise2D()
     this.isSizeScalable = _isSizeScalable
     this.offset = Math.floor(Math.random() * 1000)
@@ -82,9 +82,13 @@ class Painter {
       this.now = t
     }
     const vvv = 5
+    const _speed = Object.assign({}, this.speed)
+    _speed.x = this.speed.x + map(Math.cos(art.elapsedTime), 0.0, 1.0, 0.6, 6.0)
+    _speed.y = this.speed.y + map(Math.sin(art.elapsedTime * 0.4), 0.0, 1.0, 0.5, 2.0)
+
     const v = {
-      x: this.speed.x * map(Math.sin(this.randValue + (Math.cos(art.elapsedTime * 2.0 + n) + this.offset + n * 3.0) * 1.0), -1, 1, 1, vvv),
-      y: this.speed.y * map(Math.sin(this.randValue + (art.elapsedTime + this.offset) * 2.0 + n), -1, 1, 1, vvv)
+      x: _speed.x * map(Math.sin(this.randValue + (Math.cos(art.elapsedTime * 2.0 + n) + this.offset + n * 3.0) * 1.0), -1, 1, 1, vvv),
+      y: _speed.y * map(Math.sin(this.randValue + (art.elapsedTime + this.offset) * 2.0 + n), -1, 1, 1, vvv)
     }
     this.pos.x += v.x * this.dir.x
     this.pos.y += v.y * this.dir.y
@@ -113,7 +117,8 @@ class Painter {
   }
   draw(shouldUpdate = false) {
     const screenPos = this.getScreenPosition()
-    const rotation = this.getCalculatedRotation(screenPos.x, screenPos.y)
+    let rotation = this.getCalculatedRotation(screenPos.x, screenPos.y)
+    rotation = 90 * Math.PI / 180;
     const centerOfPainter = this.getCenter()
 
     if (shouldUpdate) {
@@ -246,7 +251,7 @@ class Painter {
 }
 
 class Art {
-  private FRAME_PADDING = 0.045
+  private FRAME_PADDING = 0.0
   private clock = new CustomClock()
   private scene = new THREE.Scene()
   private canvasSize
@@ -277,7 +282,15 @@ class Art {
     texture: {
       type: "t",
       value: null
-    }
+    },
+    texture2: {
+      type: "t",
+      value: null
+    },
+    texture2Resolution: {
+      type: 'v2',
+      value: new THREE.Vector2()
+    },
   }
   public isAxisCenter = true
   public initialized = false
@@ -304,7 +317,7 @@ class Art {
     }
 
     const canvas: any = document.getElementById('canvas')
-    canvas.style.backgroundColor = `#0000cc`
+    canvas.style.backgroundColor = `#000000`
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       preserveDrawingBuffer: true
@@ -350,6 +363,17 @@ class Art {
       this.video.src = "asset/video.mp4"
     })
   }
+
+  async loadImageTexture() {
+    const texture: any = await new THREE.TextureLoader().loadAsync("asset/computer.png");
+    this.uniforms.texture2.value = texture;
+    this.uniforms.texture2Resolution.value = new THREE.Vector2(texture.image.width, texture.image.height);
+    this.textureImageSize = {
+      w: texture.image.width,
+      h: texture.image.height
+    }
+  }
+
   createTexture(video): any {
     const imgWidth = video.videoWidth
     const imgHeight = video.videoHeight
@@ -385,10 +409,10 @@ class Art {
       _colorArray[i + 2] = colors[i + 2]
       _colorArray[i + 3] = colors[i + 3]
     }
-    this.textureImageSize = {
-      w: imgWidth,
-      h: imgHeight
-    }
+    // this.textureImageSize = {
+    //   w: imgWidth,
+    //   h: imgHeight
+    // }
 
     const dataTexture = new THREE.DataTexture(_colorArray, canvas.width, canvas.height, THREE.RGBAFormat)
     dataTexture.needsUpdate = true
@@ -433,6 +457,7 @@ class Art {
     this.renderer.setSize(width, height, false)
 
     if (this.video) {
+      await this.loadImageTexture()
       this.uniforms.texture.value = this.createTexture(this.video)
     }
     this.createPainters()
@@ -536,10 +561,10 @@ class Art {
       return {
         pos: center,
         size: size,
-        // min: createVector(-this.canvasSize.w / 2 + size.x / 2, -this.canvasSize.h / 2 + size.y / 2),
-        // max: createVector(this.canvasSize.w / 2 - size.x / 2, this.canvasSize.h / 2 - size.y / 2)
-        min: createVector(-this.canvasSize.w / 2 - size.x / 2, -this.canvasSize.h / 2 - size.y / 2),
-        max: createVector(this.canvasSize.w / 2 + size.x / 2, this.canvasSize.h / 2 + size.y / 2)
+        min: createVector(-this.canvasSize.w / 2 + size.x / 2, -this.canvasSize.h / 2 + size.y / 2),
+        max: createVector(this.canvasSize.w / 2 - size.x / 2, this.canvasSize.h / 2 - size.y / 2)
+        // min: createVector(-this.canvasSize.w / 2 - size.x / 2, -this.canvasSize.h / 2 - size.y / 2),
+        // max: createVector(this.canvasSize.w / 2 + size.x / 2, this.canvasSize.h / 2 + size.y / 2)
       }
     } else {
       const center = createVector(
