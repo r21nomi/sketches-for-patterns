@@ -119,8 +119,6 @@ class Painter {
   draw(shouldUpdate = false) {
     const screenPos = this.getScreenPosition()
     let rotation = this.getCalculatedRotation(screenPos.x, screenPos.y, screenPos.z)
-    const matrix = this.computeLookAtMatrix(screenPos.x, screenPos.y, screenPos.z)
-    art.uniforms.lookAtMatrix.value = matrix
     const centerOfPainter = this.getCenter()
 
     if (shouldUpdate) {
@@ -144,12 +142,9 @@ class Painter {
           centerPosition.setXYZ(targetIndex, centerOfPainter.x, centerOfPainter.y, centerOfPainter.z)
           centerPosition.needsUpdate = true
 
-          const rotationXAttr = art.geometry.attributes.rotationX
-          rotationXAttr.setX(targetIndex, rotation.angleX)
-          rotationXAttr.needsUpdate = true
-          const rotationYAttr = art.geometry.attributes.rotationY
-          rotationYAttr.setX(targetIndex, rotation.angleY)
-          rotationYAttr.needsUpdate = true
+          const rotationsAttr = art.geometry.attributes.rotations
+          rotationsAttr.setXY(targetIndex, rotation.angleX, rotation.angleY)
+          rotationsAttr.needsUpdate = true
         }
       }
     } else {
@@ -165,8 +160,7 @@ class Painter {
           art.paddings.push(art.PADDING, art.PADDING)
           // art.colors.push(color.r, color.g, color.b)
           art.centerPositions.push(centerOfPainter.x, centerOfPainter.y, centerOfPainter.z)
-          art.rotationsX.push(rotation.angleX)
-          art.rotationsY.push(rotation.angleY)
+          art.rotations.push(rotation.angleX, rotation.angleY)
         }
 
         art.uvs.push(
@@ -195,64 +189,35 @@ class Painter {
       z: screenPos.z
     }
   }
-  computeLookAtMatrix(x: number, y: number, z: number): THREE.Matrix4 {
-    const targetPosition = new THREE.Vector3(x, y, z)
-    const objectPosition = !!this.lastScreenPos ? new THREE.Vector3(this.lastScreenPos.x, this.lastScreenPos.y, this.lastScreenPos.z) : targetPosition
-    let lookAtMatrix = new THREE.Matrix4();
-
-    const up = new THREE.Vector3(0, 1, 0);
-    const zAxis = new THREE.Vector3().subVectors(objectPosition, targetPosition).normalize();
-    const xAxis = new THREE.Vector3().crossVectors(up, zAxis).normalize();
-    const yAxis = new THREE.Vector3().crossVectors(zAxis, xAxis);
-
-    lookAtMatrix.set(
-      xAxis.x, yAxis.x, zAxis.x, 0,
-      xAxis.y, yAxis.y, zAxis.y, 0,
-      xAxis.z, yAxis.z, zAxis.z, 0,
-      0,       0,       0,       1
-    );
-
-    return lookAtMatrix;
-  }
   getCalculatedRotation(x: number, y: number, z: number): any {
-    const target = new THREE.Vector3(x, y, z)
-    const source = !!this.lastScreenPos ? new THREE.Vector3(this.lastScreenPos.x, this.lastScreenPos.y, this.lastScreenPos.z) : target
+    const _target = {x, y, z}
+    const _current = !!this.lastScreenPos ? this.lastScreenPos : _target
+    const lookAt = (currentPosition, targetPosition)  => {
+      // Calculate vector
+      const direction = {
+        x: targetPosition.x - currentPosition.x,
+        y: targetPosition.y - currentPosition.y,
+        z: targetPosition.z - currentPosition.z
+      }
 
-    const dir = target.clone().sub(source).normalize();
+      // Normalize vector（make the length 1）
+      const magnitude = Math.sqrt(direction.x ** 2 + direction.y ** 2 + direction.z ** 2)
+      direction.x /= magnitude
+      direction.y /= magnitude
+      direction.z /= magnitude
 
-    const angleY = Math.atan2(dir.x, dir.z);
-    const angleX = Math.atan2(dir.y, Math.sqrt(dir.x * dir.x + dir.z * dir.z));
+      // Calculate the angle for Y axis
+      const angleY = Math.atan2(direction.x, direction.z)
 
-    return { angleX, angleY };
+      // Calculate the angle for X axis（仰角・俯角）
+      const angleX = Math.atan2(direction.y, Math.sqrt(direction.x ** 2 + direction.z ** 2))
 
-    // const pos = {x, y, z}
-    // const _lastPos = !!this.lastScreenPos ? this.lastScreenPos : pos
-    // const lookAt = (objectPosition, targetPosition)  => {
-    //   // ベクトルを求める
-    //   let direction = {
-    //     x: targetPosition.x - objectPosition.x,
-    //     y: targetPosition.y - objectPosition.y,
-    //     z: targetPosition.z - objectPosition.z
-    //   };
-    //
-    //   // 方向ベクトルを正規化（長さを1にする）
-    //   let magnitude = Math.sqrt(direction.x**2 + direction.y**2 + direction.z**2);
-    //   direction.x /= magnitude;
-    //   direction.y /= magnitude;
-    //   direction.z /= magnitude;
-    //
-    //   // y軸に対する角度を求める
-    //   let angleY = Math.atan2(direction.x, direction.z);
-    //
-    //   // x軸に対する角度を求める（仰角・俯角）
-    //   let angleX = Math.atan2(direction.y, Math.sqrt(direction.x**2 + direction.z**2));
-    //
-    //   return {
-    //     angleX: angleX,
-    //     angleY: angleY
-    //   };
-    // }
-    // return lookAt(_lastPos, pos)
+      return {
+        angleX,
+        angleY
+      }
+    }
+    return lookAt(_current, _target)
   }
   getCenter() {
     return {
@@ -373,8 +338,7 @@ class Art {
   public paddings: number[] = []
   public size: number[] = []
   public centerPositions: any[] = []
-  public rotationsX: number[] = []
-  public rotationsY: number[] = []
+  public rotations: number[] = []
   public totalRenderCount = 0
   public elapsedTime = 0
   public uniforms = {
@@ -398,10 +362,6 @@ class Art {
     texture2Resolution: {
       type: 'v2',
       value: new THREE.Vector2()
-    },
-    lookAtMatrix: {
-      type: 'v2',
-      value: new THREE.Matrix4()
     }
   }
   public initialized = false
@@ -607,8 +567,7 @@ class Art {
     this.size = []
     this.painters = []
     this.centerPositions = []
-    this.rotationsX = []
-    this.rotationsY = []
+    this.rotations = []
 
     const painterNum = 1
     for (let i = 0; i < painterNum; i++) {
@@ -637,8 +596,7 @@ class Art {
     this.geometry.setAttribute('size', new THREE.Float32BufferAttribute(this.size, 2))
     this.geometry.setAttribute('padding', new THREE.Float32BufferAttribute(this.paddings, 2))
     this.geometry.setAttribute('centerPosition', new THREE.Float32BufferAttribute(this.centerPositions, 3))
-    this.geometry.setAttribute('rotationX', new THREE.Float32BufferAttribute(this.rotationsX, 1))
-    this.geometry.setAttribute('rotationY', new THREE.Float32BufferAttribute(this.rotationsY, 1))
+    this.geometry.setAttribute('rotations', new THREE.Float32BufferAttribute(this.rotations, 2))
 
     const material = new THREE.RawShaderMaterial({
       uniforms: this.uniforms,

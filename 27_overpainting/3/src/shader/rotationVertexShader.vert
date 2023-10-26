@@ -11,12 +11,10 @@ attribute vec2 size;
 attribute vec2 padding;
 attribute vec3 color;
 attribute vec3 centerPosition;
-attribute float rotationX;
-attribute float rotationY;
+attribute vec2 rotations;
 
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
-uniform mat4 lookAtMatrix;
 uniform float time;
 uniform float uWidth;
 uniform float uHeight;
@@ -28,44 +26,28 @@ varying vec2 vUv;
 varying vec3 vColor;
 varying vec2 vResolution;
 
-mat2 rotate(float radian) {
-    return mat2(
-        sin(radian), cos(radian),
-        -cos(radian), sin(radian)
-    );
-}
-
-mat3 rotation3d(vec3 axis, float radian) {
-    axis = normalize(axis);
-    float s = sin(radian);
-    float c = cos(radian);
-    float oc = 1.0 - c;
-
-    return mat3(
-        oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,
-        oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,
-        oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c
-    );
-}
-
 vec3 rotateByAngles(vec3 pos) {
-    // X軸周りの回転
+    // X axis rotation
     mat3 rotationXMat = mat3(
         1.0, 0.0, 0.0,
-        0.0, cos(rotationX), -sin(rotationX),
-        0.0, sin(rotationX), cos(rotationX)
+        0.0, cos(rotations.x), -sin(rotations.x),
+        0.0, sin(rotations.x), cos(rotations.x)
     );
 
+    // transport before rotation to make the position same as original one
+    pos.xyz -= centerPosition.xyz;
     pos = rotationXMat * pos;
 
-    // Y軸周りの回転
+    // Y axis rotation
     mat3 rotationYMat = mat3(
-        cos(rotationY), 0.0, sin(rotationY),
+        cos(rotations.y), 0.0, sin(rotations.y),
         0.0, 1.0, 0.0,
-        -sin(rotationY), 0.0, cos(rotationY)
+        -sin(rotations.y), 0.0, cos(rotations.y)
     );
 
     pos = rotationYMat * pos;
+    // revert transportation
+    pos.xyz += centerPosition.xyz;
 
     return pos;
 }
@@ -78,15 +60,7 @@ void main() {
     // Actual resolution of rect by vertex with padding.
     vResolution = vec2(size.x - padding.x, size.y - padding.y);
 
-    // rotation
-    //    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-//    mvPosition.xyz -= centerPosition.xyz;
-//    mvPosition.xy *= rotate(rotationX);
-//    mvPosition.xyz *= rotation3d(vec3(1.0, 1.0, 1.0), 20.0 * PI / 180.0);
-//    mvPosition.xyz += centerPosition.xyz;
-
     vec3 rotatedPos = rotateByAngles(position);
-//    rotatedPos = position;
     vec4 mvPosition = modelViewMatrix * vec4(rotatedPos, 1.0);
 
     gl_Position = projectionMatrix * mvPosition;
