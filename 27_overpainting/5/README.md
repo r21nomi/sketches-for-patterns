@@ -1,5 +1,5 @@
 # 27_5
-![](art/art.jpg)
+![](art/art.png)
 
 ### Get started
 ```
