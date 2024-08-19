@@ -27,30 +27,30 @@ varying float vDirection;
 varying float vRatio;
 
 mat2 rotate(float radien) {
-    return mat2(
-        sin(radien), -cos(radien),
-        cos(radien), sin(radien)
-    );
+  return mat2(
+  sin(radien), -cos(radien),
+  cos(radien), sin(radien)
+  );
 }
 
 float y(float x) {
-    float contrast = 16.0; //4.0,8.0,16.0
-    return 1.0 / (1.0 + exp(-contrast * (x - 0.5)));
+  float contrast = 16.0;//4.0,8.0,16.0
+  return 1.0 / (1.0 + exp(-contrast * (x - 0.5)));
 }
 
 void main() {
-    vIndex = index;
-    vUv = uv;
-    vColor = color;
-    // Actual resolution of rect by vertex with padding.
-    vResolution = vec2(size.x * padding.x, size.y * padding.y);
-    vDirection = direction;
-    vRatio = ratio;
+  vIndex = index;
+  vUv = uv;
+  vColor = color;
+  // Actual resolution of rect by vertex with padding.
+  vResolution = vec2(size.x * padding.x, size.y * padding.y);
+  vDirection = direction;
+  vRatio = ratio;
 
-    float t = time / duration;
+  float t = time / duration;
 
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    mvPosition.xy += offset * vResolution;
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  mvPosition.xy += offset * vResolution;
 
-    gl_Position = projectionMatrix * mvPosition;
+  gl_Position = projectionMatrix * mvPosition;
 }
